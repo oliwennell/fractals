@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+        #slider, #slider-value, .loading {
+            display: inline-block;
+            float: left;
+        }
+        .loading {
+            margin-left: 10px;
+        }
+        #slider {
+            width: 400px;
+        }
+        #fractal-canvas {
+            display: block;
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    
+    <input id="slider1" class="slider" type="range" min="-20" max="90" step="1" />
+    <p id="slider1-value" class="slider-value">&nbsp;</p>
+    
+    <input id="slider2" class="slider" type="range" min="1" max="5" step="1" />
+    <p id="slider2-value" class="slider-value">&nbsp;</p>
+    
+    <p class="loading">Loading...</p>
+
+    <canvas id="fractal-canvas" width="600" height="600">
+    </canvas>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script type="text/javascript" src="fractal.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var canvas = document.getElementById('fractal-canvas');
+            var fractal = new Fractal(canvas);
+
+            var setScale = function(newValue) {
+                $('#slider1-value').text(newValue);
+                $('.loading').show();
+
+                fractal.setScale(newValue, function () {
+                    $('.loading').hide();
+                    fractal.render();
+                });
+            };
+            var setSteps = function (newValue) {
+                $('#slider2-value').text(newValue);
+                $('.loading').show();
+
+                fractal.setSteps(newValue, function () {
+                    $('.loading').hide();
+                    fractal.render();
+                });
+            };
+
+            $('#slider1').change(function () {
+                setScale(this.value * 0.01 + 0.1);
+            });
+            $('#slider2').change(function () {
+                setSteps(this.value);
+            });
+
+            setSteps(3);
+            setScale(0.01);
+        });
+    </script>
+</body>
+</html>
