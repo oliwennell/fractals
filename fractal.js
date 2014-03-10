@@ -7,6 +7,7 @@ function Fractal(_canvas) {
     var context = canvas.getContext('2d');
     var scale = 0.5;
     var numSteps = 1;
+    var pointSets = [];
 
     var getVectorLength = function (v) {
         return Math.sqrt(v.x * v.x + v.y * v.y);
@@ -24,48 +25,77 @@ function Fractal(_canvas) {
     }
 
     var update = function () {
-        var newPoints = [];
-        for (var i = 0; i < points.length; ++i) {
-            var start = points[i];
-            var end = points[(i + 1) % points.length];
+        var newPointSets = [];
 
-            var diff = {
-                x: end.x - start.x,
-                y: end.y - start.y
-            };
-            var dir = normaliseVector(diff);
-            var dist = getVectorLength(diff);
-            var mid = {
-                x: start.x + diff.x * 0.5,
-                y: start.y + diff.y * 0.5
-            };
-            var perp = {
-                x: mid.x + (dir.y*dist*0.25),
-                y: mid.y + (-dir.x*dist*0.25)
-            };
-            var pre = {
-                x: start.x + (dir.x * dist * scale),
-                y: start.y + (dir.y * dist * scale)
-            };
-            var post = {
-                x: end.x - (dir.x * dist * scale),
-                y: end.y - (dir.y * dist * scale)
-            };
+        for (var i = 0; i < pointSets.length; ++i) {
+            var points = pointSets[i];
+            var newPoints = [];
 
-            newPoints.push(start);
-            newPoints.push(pre);
-            newPoints.push(perp);
-            newPoints.push(post);
-            newPoints.push(end);
+            for (var j = 0; j < points.length - 1; ++j) {
+                var start = { x: points[j].x, y: points[j].y };
+                var end = { x: points[j + 1].x, y: points[j + 1].y };
+
+                var diff = {
+                    x: end.x - start.x,
+                    y: end.y - start.y
+                };
+                var dir = normaliseVector(diff);
+                var dist = getVectorLength(diff);
+                var mid = {
+                    x: start.x + diff.x * 0.5,
+                    y: start.y + diff.y * 0.5
+                };
+                var perp = {
+                    x: mid.x + (dir.y * dist * scale),
+                    y: mid.y + (-dir.x * dist * scale)
+                };
+                var pre = {
+                    x: start.x + (dir.x * dist * 0.25),
+                    y: start.y + (dir.y * dist * 0.25)
+                };
+                var post = {
+                    x: start.x + (dir.x * dist * 0.75),
+                    y: start.y + (dir.y * dist * 0.75)
+                };
+
+                newPoints.push(start);
+                newPoints.push(pre);
+                newPoints.push(perp);
+                newPoints.push(post);
+                newPoints.push(end);
+            }
+            newPointSets.push(newPoints);
         }
-        points = newPoints;
+        pointSets = newPointSets;
     };
 
     var refresh = function (onComplete) {
-        points = [
-            { x: canvas.width * 0.25, y: canvas.height * 0.25 },
-            { x: canvas.width * 0.75, y: canvas.height * 0.25 },
-            { x: canvas.width * 0.50, y: canvas.height * 0.75 }
+        //points = [
+        //    { x: canvas.width * 0.25, y: canvas.height * 0.25 },
+        //    { x: canvas.width * 0.75, y: canvas.height * 0.25 },
+        //    { x: canvas.width * 0.50, y: canvas.height * 0.75 }
+        //];
+        var px = function(x){ return canvas.width*x; };
+        var py = function(y){ return canvas.height*y; };
+        pointSets = [
+            [
+                { x: px(0.1), y: py(0.1) },
+                { x: px(0.1), y: py(0.9) }
+            ],
+            [
+                { x: px(0.1), y: py(0.5) },
+                { x: px(0.9), y: py(0.5) }
+            ],
+            [
+                { x: px(0.9), y: py(0.9) },
+                { x: px(0.9), y: py(0.1) }
+            ],
+            [
+                { x: px(0.1), y: py(0.1) },
+                { x: px(0.9), y: py(0.1) },
+                { x: px(0.5), y: py(0.9) },
+                { x: px(0.1), y: py(0.1) }
+            ],
         ];
         for (var i = 0; i < numSteps; ++i) {
             update();
@@ -78,17 +108,24 @@ function Fractal(_canvas) {
     self.render = function () {
 
         context.clearRect(0, 0, canvas.width, canvas.height);
-        context.beginPath();
 
-        var start = points[0];
-        context.moveTo(start.x, start.y);
+        for (var i = 0; i < pointSets.length; ++i) {
+            var points = pointSets[i];
 
-        for (var i = 1; i <= points.length; ++i) {
-            var p = points[i % points.length];
-            context.lineTo(p.x, p.y);
+            context.beginPath();
+
+            var start = points[0];
+            context.moveTo(start.x, start.y);
+
+            for (var j = 1; j < points.length; ++j) {
+                var p = points[j];
+                context.lineTo(p.x, p.y);
+            }
+            context.stroke();
+
+            //for (var j=0; j<points.length; ++j)
+            //    context.fillRect(points[j].x-2.5, points[j].y-2.5, 5, 5);
         }
-
-        context.stroke();
     };
 
     self.setScale = function (_scale, onComplete) {

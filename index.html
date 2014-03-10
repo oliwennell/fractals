@@ -22,16 +22,18 @@
 </head>
 <body>
     
-    <input id="slider1" class="slider" type="range" min="-20" max="90" step="1" />
+    <input id="slider1" class="slider" type="range" min="-200" max="200" step="1" value="0" />
     <p id="slider1-value" class="slider-value">&nbsp;</p>
     
-    <input id="slider2" class="slider" type="range" min="1" max="5" step="1" />
+    <input id="slider2" class="slider" type="range" min="0" max="10" step="1" value="0" />
     <p id="slider2-value" class="slider-value">&nbsp;</p>
     
     <p class="loading">Loading...</p>
 
-    <canvas id="fractal-canvas" width="600" height="600">
-    </canvas>
+    <div id="fractal-container">
+        <canvas id="fractal-canvas" width="600" height="600">
+        </canvas>
+    </div>
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script type="text/javascript" src="fractal.js"></script>
@@ -42,32 +44,51 @@
 
             var setScale = function(newValue) {
                 $('#slider1-value').text(newValue);
-                $('.loading').show();
+                //$('.loading').show();
 
                 fractal.setScale(newValue, function () {
-                    $('.loading').hide();
+                    //$('.loading').hide();
                     fractal.render();
                 });
             };
             var setSteps = function (newValue) {
                 $('#slider2-value').text(newValue);
-                $('.loading').show();
+                //$('.loading').show();
 
                 fractal.setSteps(newValue, function () {
-                    $('.loading').hide();
+                    //$('.loading').hide();
                     fractal.render();
                 });
             };
 
             $('#slider1').change(function () {
-                setScale(this.value * 0.01 + 0.1);
+                setScale(this.value * 0.01 + 0.01);
             });
             $('#slider2').change(function () {
                 setSteps(this.value);
             });
 
-            setSteps(3);
-            setScale(0.01);
+            setSteps(5);
+            setScale(0.0);
+
+            $('#fractal-canvas').mousemove(function (e) {
+                var x = e.pageX - this.offsetLeft;
+                var y = e.pageY - this.offsetTop;
+                var s = ((y / this.height) - 0.5) * 0.5;
+                setScale(s);
+            });
+
+            /*setScale(0);
+            setSteps(5);
+            var dir = 1;
+            var scale = 0;
+            setInterval(function () {
+                setScale(scale);
+
+                scale += 0.01 * dir;
+                if (scale < 0 || scale > 0.5)
+                    dir = dir * -1;
+            }, 60);*/
         });
     </script>
 </body>
