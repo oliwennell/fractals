@@ -4,32 +4,14 @@
     <meta charset="utf-8" />
     <title></title>
     <style>
-        #slider, #slider-value, .loading {
-            display: inline-block;
-            float: left;
-        }
-        .loading {
-            margin-left: 10px;
-        }
-        #slider {
-            width: 400px;
-        }
         #fractal-canvas {
             display: block;
+            margin: auto;
             clear: both;
         }
     </style>
 </head>
 <body>
-    
-    <input id="slider1" class="slider" type="range" min="-200" max="200" step="1" value="0" />
-    <p id="slider1-value" class="slider-value">&nbsp;</p>
-    
-    <input id="slider2" class="slider" type="range" min="0" max="10" step="1" value="0" />
-    <p id="slider2-value" class="slider-value">&nbsp;</p>
-    
-    <p class="loading">Loading...</p>
-
     <div id="fractal-container">
         <canvas id="fractal-canvas" width="600" height="600">
         </canvas>
@@ -42,53 +24,22 @@
             var canvas = document.getElementById('fractal-canvas');
             var fractal = new Fractal(canvas);
 
-            var setScale = function(newValue) {
-                $('#slider1-value').text(newValue);
-                //$('.loading').show();
+            $('#fractal-canvas')
+                .mousemove(function (e) {
+                    var x = e.pageX - this.offsetLeft;
+                    var y = e.pageY - this.offsetTop;
 
-                fractal.setScale(newValue, function () {
-                    //$('.loading').hide();
-                    fractal.render();
+                    fractal.refresh({ x: x, y: y }, function () {
+                        fractal.render();
+                    });
+                })
+                .mouseleave(function (e) {
+                    fractal.refresh(null, function () {
+                        fractal.render();
+                    });
                 });
-            };
-            var setSteps = function (newValue) {
-                $('#slider2-value').text(newValue);
-                //$('.loading').show();
 
-                fractal.setSteps(newValue, function () {
-                    //$('.loading').hide();
-                    fractal.render();
-                });
-            };
-
-            $('#slider1').change(function () {
-                setScale(this.value * 0.01 + 0.01);
-            });
-            $('#slider2').change(function () {
-                setSteps(this.value);
-            });
-
-            setSteps(5);
-            setScale(0.0);
-
-            $('#fractal-canvas').mousemove(function (e) {
-                var x = e.pageX - this.offsetLeft;
-                var y = e.pageY - this.offsetTop;
-                var s = ((y / this.height) - 0.5) * 0.5;
-                setScale(s);
-            });
-
-            /*setScale(0);
-            setSteps(5);
-            var dir = 1;
-            var scale = 0;
-            setInterval(function () {
-                setScale(scale);
-
-                scale += 0.01 * dir;
-                if (scale < 0 || scale > 0.5)
-                    dir = dir * -1;
-            }, 60);*/
+            fractal.render();
         });
     </script>
 </body>

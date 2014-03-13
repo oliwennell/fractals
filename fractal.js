@@ -2,16 +2,20 @@
 function Fractal(_canvas) {
     var self = this;
 
-    var step = 0;
     var canvas = _canvas;
     var context = canvas.getContext('2d');
-    var scale = 0.5;
-    var numSteps = 1;
+    var numSteps = 5;
     var pointSets = [];
 
     var getVectorLength = function (v) {
         return Math.sqrt(v.x * v.x + v.y * v.y);
-    }
+    };
+
+    var getSquaredVectorDistance = function(a, b) {
+        var dx = Math.abs(a.x - b.x);
+        var dy = Math.abs(a.y - b.y);
+        return dx * dx + dy * dy;
+    };
 
     var normaliseVector = function (v) {
         var length = getVectorLength(v);
@@ -22,9 +26,29 @@ function Fractal(_canvas) {
             x: v.x / length,
             y: v.y / length
         }
+    };
+
+    var getDistFromLineToPoint = function (lineA, lineB, point) {
+        // http://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+
+        function distToSegmentSquared(lineA, lineB, point) {
+            var l2 = getSquaredVectorDistance(lineA, lineB);
+            if (l2 == 0) return getSquaredVectorDistance(point, lineA);
+
+            var t = ((point.x - lineA.x) * (lineB.x - lineA.x) + (point.y - lineA.y) * (lineB.y - lineA.y)) / l2;
+            if (t < 0) return getSquaredVectorDistance(point, lineA);
+            if (t > 1) return getSquaredVectorDistance(point, lineB);
+
+            return getSquaredVectorDistance(point, {
+                x: lineA.x + t * (lineB.x - lineA.x),
+                y: lineA.y + t * (lineB.y - lineA.y)
+            });
+        }
+        return Math.sqrt(distToSegmentSquared(lineA, lineB, point));
     }
 
-    var update = function () {
+    var update = function (center) {
+
         var newPointSets = [];
 
         for (var i = 0; i < pointSets.length; ++i) {
@@ -34,6 +58,11 @@ function Fractal(_canvas) {
             for (var j = 0; j < points.length - 1; ++j) {
                 var start = { x: points[j].x, y: points[j].y };
                 var end = { x: points[j + 1].x, y: points[j + 1].y };
+
+                var lineScale = ((canvas.width - getDistFromLineToPoint(start, end, center)) / canvas.width);
+                lineScale = Math.pow(lineScale, 8);
+                lineScale = Math.min(lineScale, 0.5);
+                lineScale = lineScale * -1;
 
                 var diff = {
                     x: end.x - start.x,
@@ -46,8 +75,8 @@ function Fractal(_canvas) {
                     y: start.y + diff.y * 0.5
                 };
                 var perp = {
-                    x: mid.x + (dir.y * dist * scale),
-                    y: mid.y + (-dir.x * dist * scale)
+                    x: mid.x + (dir.y * dist * lineScale),
+                    y: mid.y + (-dir.x * dist * lineScale)
                 };
                 var pre = {
                     x: start.x + (dir.x * dist * 0.25),
@@ -69,36 +98,35 @@ function Fractal(_canvas) {
         pointSets = newPointSets;
     };
 
-    var refresh = function (onComplete) {
-        //points = [
-        //    { x: canvas.width * 0.25, y: canvas.height * 0.25 },
-        //    { x: canvas.width * 0.75, y: canvas.height * 0.25 },
-        //    { x: canvas.width * 0.50, y: canvas.height * 0.75 }
-        //];
+    self.refresh = function (center, onComplete) {
         var px = function(x){ return canvas.width*x; };
-        var py = function(y){ return canvas.height*y; };
+        var py = function (y) { return canvas.height * y; };
+
         pointSets = [
             [
-                { x: px(0.1), y: py(0.1) },
-                { x: px(0.1), y: py(0.9) }
-            ],
-            [
-                { x: px(0.1), y: py(0.5) },
-                { x: px(0.9), y: py(0.5) }
-            ],
-            [
-                { x: px(0.9), y: py(0.9) },
-                { x: px(0.9), y: py(0.1) }
-            ],
-            [
-                { x: px(0.1), y: py(0.1) },
-                { x: px(0.9), y: py(0.1) },
-                { x: px(0.5), y: py(0.9) },
-                { x: px(0.1), y: py(0.1) }
-            ],
+                { x: px(0.2), y: py(0.2) },
+                { x: px(0.2), y: py(0.4) },
+                { x: px(0.2), y: py(0.6) },
+                { x: px(0.2), y: py(0.8) },
+
+                { x: px(0.4), y: py(0.8) },
+                { x: px(0.6), y: py(0.8) },
+                { x: px(0.8), y: py(0.8) },
+
+                { x: px(0.8), y: py(0.6) },
+                { x: px(0.8), y: py(0.4) },
+                { x: px(0.8), y: py(0.2) },
+
+                { x: px(0.6), y: py(0.2) },
+                { x: px(0.4), y: py(0.2) },
+                { x: px(0.2), y: py(0.2) }
+            ]
         ];
-        for (var i = 0; i < numSteps; ++i) {
-            update();
+
+        if (center) {
+            for (var i = 0; i < numSteps; ++i) {
+                update(center);
+            }
         }
 
         if (onComplete)
@@ -111,6 +139,8 @@ function Fractal(_canvas) {
 
         for (var i = 0; i < pointSets.length; ++i) {
             var points = pointSets[i];
+            if (points.length == 0)
+                continue;
 
             context.beginPath();
 
@@ -122,27 +152,8 @@ function Fractal(_canvas) {
                 context.lineTo(p.x, p.y);
             }
             context.stroke();
-
-            //for (var j=0; j<points.length; ++j)
-            //    context.fillRect(points[j].x-2.5, points[j].y-2.5, 5, 5);
         }
     };
 
-    self.setScale = function (_scale, onComplete) {
-        if (scale == _scale)
-            return;
-
-        scale = _scale;
-        refresh(onComplete);
-    };
-
-    self.setSteps = function (_steps, onComplete) {
-        if (numSteps == _steps)
-            return;
-
-        numSteps = _steps;
-        refresh(onComplete);
-    };
-
-    refresh();
+    self.refresh();
 };
