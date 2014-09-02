@@ -19,28 +19,5 @@
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script type="text/javascript" src="fractal.js"></script>
-    <script type="text/javascript">
-        $(document).ready(function () {
-            var canvas = document.getElementById('fractal-canvas');
-            var fractal = new Fractal(canvas);
-
-            $('#fractal-canvas')
-                .mousemove(function (e) {
-                    var x = e.pageX - this.offsetLeft;
-                    var y = e.pageY - this.offsetTop;
-
-                    fractal.refresh({ x: x, y: y }, function () {
-                        fractal.render();
-                    });
-                })
-                .mouseleave(function (e) {
-                    fractal.refresh(null, function () {
-                        fractal.render();
-                    });
-                });
-
-            fractal.render();
-        });
-    </script>
 </body>
 </html>

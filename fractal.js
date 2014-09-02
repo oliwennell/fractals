@@ -157,3 +157,25 @@ function Fractal(_canvas) {
 
     self.refresh();
 };
+
+$(document).ready(function () {
+    var canvas = document.getElementById('fractal-canvas');
+    var fractal = new Fractal(canvas);
+
+    $('#fractal-canvas')
+        .mousemove(function (e) {
+            var x = e.pageX - this.offsetLeft;
+            var y = e.pageY - this.offsetTop;
+
+            fractal.refresh({ x: x, y: y }, function () {
+                fractal.render();
+            });
+        })
+        .mouseleave(function (e) {
+            fractal.refresh(null, function () {
+                fractal.render();
+            });
+        });
+
+    fractal.render();
+});
