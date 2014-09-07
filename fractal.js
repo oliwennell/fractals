@@ -2,157 +2,107 @@
 function Fractal(_canvas) {
     var self = this;
 
+    var Vector = function(x, y) {
+        this.x = x || 0;
+        this.y = y || 0;
+
+        this.magnitude = function() {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        };
+
+        this.normalise = function() {
+            var length = this.magnitude();
+            if (length == 0)
+                return new Vector(this.x, this.y);
+
+            return new Vector(this.x / length, this.y / length);
+        };
+        this.subtract = function(other) {
+            return new Vector(this.x - other.x, this.y - other.y);
+        };
+    };
+
+    var Node = function() {
+        this.pos = new Vector();
+        this.prev = null;
+        this.children = []; 
+    };
+
+
     var canvas = _canvas;
     var context = canvas.getContext('2d');
-    var numSteps = 5;
-    var pointSets = [];
+    
+    var root = new Node();
+    var depth = 0;
 
-    var getVectorLength = function (v) {
-        return Math.sqrt(v.x * v.x + v.y * v.y);
-    };
+    var generateNode = function(prevNode, prevDir) {
 
-    var getSquaredVectorDistance = function(a, b) {
-        var dx = Math.abs(a.x - b.x);
-        var dy = Math.abs(a.y - b.y);
-        return dx * dx + dy * dy;
-    };
+        if (depth > 6)
+            return;
 
-    var normaliseVector = function (v) {
-        var length = getVectorLength(v);
-        if (length == 0)
-            return { x: v.x, y: v.y };
+        depth++;
 
-        return {
-            x: v.x / length,
-            y: v.y / length
-        }
-    };
+        var prevLength = prevDir.magnitude();
+                    
+        var newLength = prevLength * 0.666;
+        //var newLength = prevLength * 0.25 * depth;
+        var newV = new Vector(
+            prevNode.pos.x + ((Math.random() - 0.5) * newLength) * (depth*0.2),
+            prevNode.pos.y + (Math.max(0.2, Math.random() * 0.75) * newLength) * (depth*0.15)
+        );
+        var newDir = newV.subtract(prevNode.pos).normalise();
+        var newNode = new Node();
+        newNode.pos.x = prevNode.pos.x + (newDir.x * newLength);
+        newNode.pos.y = prevNode.pos.y - (newDir.y * newLength);
 
-    var getDistFromLineToPoint = function (lineA, lineB, point) {
-        // http://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+        //console.log(depth + ' ' + newNode.pos.x + ':' + newNode.pos.y);
+        prevNode.children.push(newNode);        
 
-        function distToSegmentSquared(lineA, lineB, point) {
-            var l2 = getSquaredVectorDistance(lineA, lineB);
-            if (l2 == 0) return getSquaredVectorDistance(point, lineA);
+        prevDir = newNode.pos.subtract(prevNode.pos);
+        for (var leaf = 0; leaf < Math.max(1, Math.random()*depth*1.75); ++leaf)
+            generateNode(newNode, prevDir);
 
-            var t = ((point.x - lineA.x) * (lineB.x - lineA.x) + (point.y - lineA.y) * (lineB.y - lineA.y)) / l2;
-            if (t < 0) return getSquaredVectorDistance(point, lineA);
-            if (t > 1) return getSquaredVectorDistance(point, lineB);
-
-            return getSquaredVectorDistance(point, {
-                x: lineA.x + t * (lineB.x - lineA.x),
-                y: lineA.y + t * (lineB.y - lineA.y)
-            });
-        }
-        return Math.sqrt(distToSegmentSquared(lineA, lineB, point));
+        depth--;
     }
 
-    var update = function (center) {
+    var update = function () {
 
-        var newPointSets = [];
+        rootNode = new Node();
 
-        for (var i = 0; i < pointSets.length; ++i) {
-            var points = pointSets[i];
-            var newPoints = [];
+        var px = function(x) { return canvas.width * x; };
+        var py = function (y) { return canvas.height * y; };
+        rootNode.pos = new Vector(px(0.5), py(0.5))
 
-            for (var j = 0; j < points.length - 1; ++j) {
-                var start = { x: points[j].x, y: points[j].y };
-                var end = { x: points[j + 1].x, y: points[j + 1].y };
-
-                var lineScale = ((canvas.width - getDistFromLineToPoint(start, end, center)) / canvas.width);
-                lineScale = Math.pow(lineScale, 8);
-                lineScale = Math.min(lineScale, 0.5);
-                lineScale = lineScale * -1;
-
-                var diff = {
-                    x: end.x - start.x,
-                    y: end.y - start.y
-                };
-                var dir = normaliseVector(diff);
-                var dist = getVectorLength(diff);
-                var mid = {
-                    x: start.x + diff.x * 0.5,
-                    y: start.y + diff.y * 0.5
-                };
-                var perp = {
-                    x: mid.x + (dir.y * dist * lineScale),
-                    y: mid.y + (-dir.x * dist * lineScale)
-                };
-                var pre = {
-                    x: start.x + (dir.x * dist * 0.25),
-                    y: start.y + (dir.y * dist * 0.25)
-                };
-                var post = {
-                    x: start.x + (dir.x * dist * 0.75),
-                    y: start.y + (dir.y * dist * 0.75)
-                };
-
-                newPoints.push(start);
-                newPoints.push(pre);
-                newPoints.push(perp);
-                newPoints.push(post);
-                newPoints.push(end);
-            }
-            newPointSets.push(newPoints);
-        }
-        pointSets = newPointSets;
+        depth = 0;
+        var prevNode = rootNode;
+        var prevDir = new Vector(0, -150);
+        generateNode(prevNode, prevDir);
     };
 
-    self.refresh = function (center, onComplete) {
-        var px = function(x){ return canvas.width*x; };
-        var py = function (y) { return canvas.height * y; };
-
-        pointSets = [
-            [
-                { x: px(0.2), y: py(0.2) },
-                { x: px(0.2), y: py(0.4) },
-                { x: px(0.2), y: py(0.6) },
-                { x: px(0.2), y: py(0.8) },
-
-                { x: px(0.4), y: py(0.8) },
-                { x: px(0.6), y: py(0.8) },
-                { x: px(0.8), y: py(0.8) },
-
-                { x: px(0.8), y: py(0.6) },
-                { x: px(0.8), y: py(0.4) },
-                { x: px(0.8), y: py(0.2) },
-
-                { x: px(0.6), y: py(0.2) },
-                { x: px(0.4), y: py(0.2) },
-                { x: px(0.2), y: py(0.2) }
-            ]
-        ];
-
-        if (center) {
-            for (var i = 0; i < numSteps; ++i) {
-                update(center);
-            }
-        }
+    self.refresh = function (onComplete) {
+        update();
 
         if (onComplete)
             onComplete();
+    };
+
+    var renderNode = function(node) {
+        for (var childIndex = 0; childIndex < node.children.length; ++childIndex) {
+            var child = node.children[childIndex];
+            context.beginPath();
+            context.moveTo(node.pos.x, node.pos.y);
+            context.lineTo(child.pos.x, child.pos.y);
+            context.stroke();
+
+            renderNode(child);
+        }
     };
 
     self.render = function () {
 
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        for (var i = 0; i < pointSets.length; ++i) {
-            var points = pointSets[i];
-            if (points.length == 0)
-                continue;
-
-            context.beginPath();
-
-            var start = points[0];
-            context.moveTo(start.x, start.y);
-
-            for (var j = 1; j < points.length; ++j) {
-                var p = points[j];
-                context.lineTo(p.x, p.y);
-            }
-            context.stroke();
-        }
+        renderNode(rootNode);
     };
 
     self.refresh();
@@ -161,21 +111,5 @@ function Fractal(_canvas) {
 $(document).ready(function () {
     var canvas = document.getElementById('fractal-canvas');
     var fractal = new Fractal(canvas);
-
-    $('#fractal-canvas')
-        .mousemove(function (e) {
-            var x = e.pageX - this.offsetLeft;
-            var y = e.pageY - this.offsetTop;
-
-            fractal.refresh({ x: x, y: y }, function () {
-                fractal.render();
-            });
-        })
-        .mouseleave(function (e) {
-            fractal.refresh(null, function () {
-                fractal.render();
-            });
-        });
-
     fractal.render();
 });
